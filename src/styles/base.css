@@ -1,0 +1,53 @@
+/* Page-wide basics */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* Centered column with side padding (works on phones too) */
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding-left: max(var(--space), env(safe-area-inset-left));
+  padding-right: max(var(--space), env(safe-area-inset-right));
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+a {
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 2px;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}

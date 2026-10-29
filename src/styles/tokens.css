@@ -1,0 +1,32 @@
+/* Design tokens: change colors, fonts and spacing here only. */
+:root {
+  /* Colors */
+  --cream: #FCEBD7;        /* home background */
+  --ink: #111111;          /* main text */
+  --muted: #5e5852;        /* secondary text */
+  --red: #D23A54;          /* chips, logo, tagline */
+  --heart: #B0103A;        /* favorite heart */
+  --guide: #F86262;        /* block behind "guide" */
+  --tape: #BFDAEC;         /* tape behind "Discount" */
+  --pin: #57B3EA;          /* tape pins */
+  --sky-card: #A9D9FB;     /* "new this week" cards */
+  --note: #F8F4EE;         /* Notes-style deal cards */
+  --note-accent: #D9A21B;  /* "‹ Notes" yellow */
+  --pill-border: #F6DDA9;  /* language + login pills */
+  --good: #1f6b3c;
+  --bad: #b4232c;
+  --page-text: var(--ink); /* changes per view */
+
+  /* Fonts */
+  --font-body: "Nunito", "Noto Sans TC", system-ui, -apple-system, "PingFang TC", sans-serif;
+  --font-display: "Archivo Black", "Arial Black", sans-serif;
+  --font-serif: "Playfair Display", "Noto Serif TC", Georgia, serif;
+  --font-guide: "Fraunces", "Playfair Display", Georgia, serif;
+
+  /* Sizes */
+  --radius: 12px;
+  --space: 16px;
+  --max-width: 1100px;
+
+  color-scheme: light;
+}

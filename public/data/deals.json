@@ -1,0 +1,125 @@
+[
+  {
+    "id": "sample-bento",
+    "category": "food",
+    "area": "大學城",
+    "name": {
+      "zh": "範例便當屋",
+      "en": "Sample Bento House"
+    },
+    "offer": {
+      "zh": "學生 9 折",
+      "en": "10% off"
+    },
+    "conditions": {
+      "zh": "出示學生證，平日 11:00–14:00",
+      "en": "Show student ID, weekdays 11:00–14:00"
+    },
+    "lastChecked": "2026-10-24",
+    "addedAt": "2026-10-27T00:00:00+08:00",
+    "validUntil": "2026-11-05",
+    "mapQuery": "淡水 大學城"
+  },
+  {
+    "id": "sample-tea",
+    "category": "drink",
+    "area": "水源街",
+    "name": {
+      "zh": "範例手搖飲",
+      "en": "Sample Tea Stand"
+    },
+    "offer": {
+      "zh": "大杯升級免費",
+      "en": "Free size upgrade"
+    },
+    "conditions": {
+      "zh": "出示學生證",
+      "en": "Show student ID"
+    },
+    "lastChecked": "2026-10-27",
+    "addedAt": "2026-10-26T00:00:00+08:00",
+    "validUntil": "2026-11-01",
+    "mapQuery": "淡水 水源街"
+  },
+  {
+    "id": "sample-study-cafe",
+    "category": "cafe",
+    "area": "英專路",
+    "name": {
+      "zh": "範例讀書咖啡",
+      "en": "Sample Study Café"
+    },
+    "offer": {
+      "zh": "學生平日不限時",
+      "en": "No time limit on weekdays"
+    },
+    "conditions": {
+      "zh": "低消 NT$80",
+      "en": "Min. spend NT$80"
+    },
+    "lastChecked": "2026-10-15",
+    "addedAt": "2026-10-12T00:00:00+08:00",
+    "mapQuery": "淡水 英專路"
+  },
+  {
+    "id": "sample-print",
+    "category": "service",
+    "area": "大學城",
+    "name": {
+      "zh": "範例影印店",
+      "en": "Sample Print Shop"
+    },
+    "offer": {
+      "zh": "黑白影印 NT$0.8/張",
+      "en": "B&W print NT$0.8/page"
+    },
+    "conditions": {
+      "zh": "學生證，50 張以上",
+      "en": "Student ID, 50+ pages"
+    },
+    "lastChecked": "2026-10-20",
+    "addedAt": "2026-10-05T00:00:00+08:00",
+    "mapQuery": "淡水 大學城"
+  },
+  {
+    "id": "sample-board-games",
+    "category": "fun",
+    "area": "大學城",
+    "name": {
+      "zh": "範例桌遊店",
+      "en": "Sample Board Game Café"
+    },
+    "offer": {
+      "zh": "學生每小時 NT$50",
+      "en": "NT$50/hour for students"
+    },
+    "conditions": {
+      "zh": "平日下午",
+      "en": "Weekday afternoons"
+    },
+    "lastChecked": "2026-10-18",
+    "addedAt": "2026-09-28T00:00:00+08:00",
+    "mapQuery": "淡水 大學城"
+  },
+  {
+    "id": "sample-breakfast",
+    "category": "food",
+    "area": "英專路",
+    "name": {
+      "zh": "範例早餐店",
+      "en": "Sample Breakfast Shop"
+    },
+    "offer": {
+      "zh": "套餐折 NT$10",
+      "en": "NT$10 off set meals"
+    },
+    "conditions": {
+      "zh": "早上 9 點前",
+      "en": "Before 9 a.m."
+    },
+    "lastChecked": "2026-10-28",
+    "addedAt": "2026-10-28T00:00:00+08:00",
+    "validUntil": "2026-10-31",
+    "mapQuery": "淡水 英專路"
+  }
+]
