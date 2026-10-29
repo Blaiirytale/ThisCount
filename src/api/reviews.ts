@@ -102,6 +102,7 @@ function fromRow(r: ReviewRow, userId: string | null): Review {
     author: { adj: r.author_adj, animal: r.author_animal, tag: r.author_tag },
     helpfulCount: r.helpful_count,
     createdAt: r.created_at,
+    authorId: r.user_id,
     isMine: r.user_id === userId,
     isHidden: r.status === 'hidden',
     replies: (r.review_replies ?? []).map(fromReplyRow).sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
@@ -166,11 +167,15 @@ export async function postReview(input: NewReview, userId: string): Promise<void
   }
 }
 
-export async function deleteReview(review: Review): Promise<void> {
+export async function deleteReview(review: { id: number; photoPath: string | null }): Promise<void> {
   const sb = requireSupabase();
   const { error } = await sb.from('reviews').delete().eq('id', review.id);
   if (error) throw error;
   if (review.photoPath) await sb.storage.from(BUCKET).remove([review.photoPath]);
+}
+
+export function reviewPhotoUrl(path: string | null): string | null {
+  return photoUrl(path);
 }
 
 export async function setHelpful(reviewId: number, userId: string, helpful: boolean): Promise<void> {

@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import type { Category, Deal } from '../types';
 
 // How a row looks in the "deals" table
-interface DealRow {
+export interface DealRow {
   id: string;
   category: Category;
   area: string;
@@ -21,7 +21,7 @@ interface DealRow {
   owner_id: string | null;
 }
 
-function fromRow(r: DealRow): Deal {
+export function fromRow(r: DealRow): Deal {
   return {
     id: r.id,
     category: r.category,
@@ -48,6 +48,9 @@ export async function loadDeals(): Promise<Deal[]> {
     if (!res.ok) throw new Error(`Could not load deals (HTTP ${res.status})`);
     deals = (await res.json()) as Deal[];
   }
+  // Expired deals disappear automatically (admins still see them in the admin page)
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(new Date()); // YYYY-MM-DD
+  deals = deals.filter((d) => !d.validUntil || d.validUntil >= today);
   // Newest first
   return deals.sort((a, b) => b.addedAt.localeCompare(a.addedAt));
 }

@@ -2,6 +2,7 @@
 
 import { useLanguage } from '../i18n/LanguageContext';
 import { formatRange } from '../utils/dates';
+import { trackDeal } from '../api/stats';
 import { Modal, ModalHeader } from './Modal';
 import { FavoriteButton } from './FavoriteButton';
 import { ReviewSection } from './ReviewSection';
@@ -52,6 +53,7 @@ export function DealDetail(props: Props) {
               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(deal.mapQuery)}`}
               target="_blank"
               rel="noopener"
+              onClick={() => trackDeal(deal.id, 'map')}
             >
               {t('openMap')} ↗
             </a>

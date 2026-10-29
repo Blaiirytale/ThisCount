@@ -1,12 +1,22 @@
-// Login pop-up: enter email, get a magic link
+// Login pop-up: log in or create an account with email + password
 
 import { useState, type FormEvent } from 'react';
-import { useLanguage } from '../i18n/LanguageContext';
-import { sendLoginLink } from '../hooks/useAuth';
+import { useLanguage, type TextKey } from '../i18n/LanguageContext';
+import { AuthError, logIn, signUp, type AuthProblem } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import { Modal, ModalHeader } from './Modal';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MIN_PASSWORD = 6; // Supabase's default minimum
+
+const PROBLEM_TEXT: Record<AuthProblem, TextKey> = {
+  wrongPassword: 'authWrongPassword',
+  alreadyRegistered: 'authAlreadyRegistered',
+  weakPassword: 'authWeakPassword',
+  confirmEmail: 'authConfirmEmail',
+  tooMany: 'authTooMany',
+  other: 'loginError',
+};
 
 interface Props {
   open: boolean;
@@ -15,57 +25,111 @@ interface Props {
 
 export function LoginDialog({ open, onClose }: Props) {
   const { t } = useLanguage();
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false); // true = show the password
+  const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
 
   function close() {
-    setStatus('idle');
+    setPassword('');
     setError('');
+    setInfo('');
     onClose();
+  }
+
+  function switchMode(next: 'login' | 'signup') {
+    setMode(next);
+    setError('');
+    setInfo('');
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!supabase) return setError(t('loginOffline'));
     if (!EMAIL_PATTERN.test(email.trim())) return setError(t('emailInvalid'));
-    setStatus('sending');
+    if (password.length < MIN_PASSWORD) return setError(t('authWeakPassword'));
+
+    setSending(true);
     setError('');
+    setInfo('');
     try {
-      await sendLoginLink(email.trim());
-      setStatus('sent');
+      if (mode === 'login') {
+        await logIn(email.trim(), password);
+        close();
+      } else {
+        const loggedIn = await signUp(email.trim(), password);
+        if (loggedIn) close();
+        else setInfo(t('authConfirmEmail')); // email confirmation is still on in Supabase
+      }
     } catch (err) {
       console.error('[ThisCount] login', err);
-      setStatus('idle');
-      setError(t('loginError'));
+      setError(t(err instanceof AuthError ? PROBLEM_TEXT[err.problem] : 'loginError'));
+    } finally {
+      setSending(false);
     }
   }
 
   return (
     <Modal open={open} onClose={close} labelledBy="login-title">
-      <ModalHeader id="login-title" title={t('loginTitle')} onClose={close} closeLabel={t('close')} />
-      {status === 'sent' ? (
-        <p className="form-message" data-kind="ok">{t('loginSent')}</p>
-      ) : (
-        <form className="stack" onSubmit={handleSubmit} noValidate>
-          <p className="muted">{t('loginIntro')}</p>
-          <label className="form-row" htmlFor="login-email">
-            <span>{t('email')}</span>
+      <ModalHeader
+        id="login-title"
+        title={mode === 'login' ? t('loginTitle') : t('signupTitle')}
+        onClose={close}
+        closeLabel={t('close')}
+      />
+
+      <div className="chips auth-tabs" role="group" aria-label={t('loginTitle')}>
+        <button type="button" className="chip" aria-pressed={mode === 'login'} onClick={() => switchMode('login')}>
+          {t('login')}
+        </button>
+        <button type="button" className="chip" aria-pressed={mode === 'signup'} onClick={() => switchMode('signup')}>
+          {t('signup')}
+        </button>
+      </div>
+
+      <form className="stack" onSubmit={handleSubmit} noValidate>
+        <label className="form-row" htmlFor="login-email">
+          <span>{t('email')}</span>
+          <input
+            id="login-email"
+            className="field"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </label>
+        <label className="form-row" htmlFor="login-password">
+          <span>{t('password')}</span>
+          <div className="password-box">
             <input
-              id="login-email"
+              id="login-password"
               className="field"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type={showPassword ? 'text' : 'password'}
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
             />
-          </label>
-          <button type="submit" className="btn-primary" disabled={status === 'sending'}>
-            {status === 'sending' ? t('sending') : t('sendLink')}
-          </button>
-          {error && <p className="form-message" data-kind="error">{error}</p>}
-        </form>
-      )}
+            <button
+              type="button"
+              className="link-btn"
+              aria-pressed={showPassword}
+              onClick={() => setShowPassword((s) => !s)}
+            >
+              {showPassword ? t('hidePassword') : t('showPassword')}
+            </button>
+          </div>
+        </label>
+        {mode === 'signup' && <p className="muted small">{t('passwordHint')}</p>}
+        <button type="submit" className="btn-primary" disabled={sending}>
+          {sending ? t('sending') : mode === 'login' ? t('login') : t('signup')}
+        </button>
+        {error && <p className="form-message" data-kind="error">{error}</p>}
+        {info && <p className="form-message" data-kind="ok">{info}</p>}
+      </form>
     </Modal>
   );
 }

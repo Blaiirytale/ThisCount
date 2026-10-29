@@ -1,0 +1,5 @@
+# Settings for the Supabase CLI (only used if you deploy functions from Terminal).
+# The function only translates existing, visible reviews and caches the result,
+# so it doesn't need a logged-in user.
+[functions.translate-review]
+verify_jwt = false

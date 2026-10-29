@@ -9,6 +9,7 @@ import { loadDeals } from './api/deals';
 import { loadReviewStats } from './api/reviews';
 import { addFavorite, loadFavorites, removeFavorite } from './api/favorites';
 import { isNew } from './utils/dates';
+import { loadDealStats, trackDeal, type DealStats } from './api/stats';
 import { Header } from './components/Header';
 import { CategoryFilter } from './components/CategoryFilter';
 import { Hero } from './components/Hero';
@@ -19,6 +20,9 @@ import { SubmitForm } from './components/SubmitForm';
 import { LoginDialog } from './components/LoginDialog';
 import { OwnerApplyDialog } from './components/OwnerApplyDialog';
 import { Toast } from './components/Toast';
+import { AdminPage } from './components/admin/AdminPage';
+import { ProfilePage } from './components/profile/ProfilePage';
+import { PublicProfilePage } from './components/profile/PublicProfilePage';
 import type { Deal, Filter, ReviewStats } from './types';
 
 // Each view has its own background (see .view-* in components.css)
@@ -28,13 +32,14 @@ export default function App() {
   const { t, pick } = useLanguage();
   const { user } = useAuth();
   const userId = user?.id ?? null;
-  const { profile } = useProfile(userId);
+  const { profile, reload: reloadProfile } = useProfile(userId);
 
   // Data
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [stats, setStats] = useState<Record<string, ReviewStats>>({});
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [dealStats, setDealStats] = useState<Record<string, DealStats>>({});
 
   // UI
   const [search, setSearch] = useState('');
@@ -45,14 +50,32 @@ export default function App() {
   const [notice, setNotice] = useState('');
   const clearNotice = useCallback(() => setNotice(''), []);
 
+  // "#admin" in the address opens the admin page
+  const [route, setRoute] = useState(() => window.location.hash);
+  useEffect(() => {
+    const onHash = () => setRoute(window.location.hash);
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+  const isAdminRoute = route === '#admin';
+  const isProfileRoute = route === '#profile';
+  const publicUserId = route.startsWith('#user-') ? route.slice('#user-'.length) : null;
+  const pageView = isAdminRoute || isProfileRoute || publicUserId ? 'admin' : null; // plain cream background
+
+  // Following a link (e.g. a reviewer's name) closes the deal pop-up
+  useEffect(() => {
+    setOpenDealId(null);
+    window.scrollTo(0, 0);
+  }, [route]);
+
   const view: View = filter === 'all' ? 'home' : filter === 'favorites' ? 'favorites' : 'category';
 
   const refreshStats = useCallback(() => {
     loadReviewStats().then(setStats).catch((err) => console.error('[ThisCount] stats', err));
   }, []);
 
-  // Load deals once, and review summaries
-  useEffect(() => {
+  // Load deals (again after an admin publishes one)
+  const reloadDeals = useCallback(() => {
     loadDeals()
       .then((d) => {
         setDeals(d);
@@ -62,8 +85,18 @@ export default function App() {
         console.error('[ThisCount] load', err);
         setLoadState('error');
       });
+  }, []);
+
+  useEffect(() => {
+    reloadDeals();
     refreshStats();
-  }, [refreshStats]);
+    loadDealStats(7).then(setDealStats).catch((err) => console.error('[ThisCount] deal stats', err));
+  }, [reloadDeals, refreshStats]);
+
+  // Count a view whenever a deal is opened (once per day per browser)
+  useEffect(() => {
+    if (openDealId) trackDeal(openDealId, 'view');
+  }, [openDealId]);
 
   // Load favorites when someone logs in
   useEffect(() => {
@@ -87,6 +120,17 @@ export default function App() {
   }, [deals, search, filter, favorites]);
 
   const newDeals = useMemo(() => deals.filter((d) => isNew(d.addedAt)), [deals]);
+
+  // Top deals by score this week. Until there's enough data, show "new this week" instead.
+  const trendingDeals = useMemo(
+    () =>
+      deals
+        .filter((d) => (dealStats[d.id]?.score ?? 0) > 0)
+        .sort((a, b) => dealStats[b.id].score - dealStats[a.id].score)
+        .slice(0, 6),
+    [deals, dealStats],
+  );
+  const showTrending = trendingDeals.length >= 3;
   const showHome = view === 'home' && !search;
 
   async function toggleFavorite(dealId: string) {
@@ -110,6 +154,7 @@ export default function App() {
 
   // Phone: opens the share sheet. Computer: copies the link.
   async function shareDeal(deal: Deal) {
+    trackDeal(deal.id, 'share');
     const text = `${pick(deal.name)}: ${pick(deal.offer)}`;
     const url = window.location.href.split('#')[0];
     try {
@@ -128,54 +173,95 @@ export default function App() {
   function goHome() {
     setFilter('all');
     setSearch('');
+    if (window.location.hash) {
+      // Remove "#admin" / "#profile" from the address without reloading
+      history.pushState('', document.title, window.location.pathname + window.location.search);
+      setRoute('');
+    }
+  }
+
+  // Typing in search on another page jumps back to the deals
+  function handleSearch(value: string) {
+    if (route) goHome();
+    setSearch(value);
   }
 
   const openDeal = deals.find((d) => d.id === openDealId) ?? null;
 
   return (
-    <div className={`page view-${view}`}>
-      <Header user={user} search={search} onSearch={setSearch} onLogin={() => setLoginOpen(true)} onHome={goHome} />
+    <div className={`page view-${pageView ?? view}`}>
+      <Header
+        user={user}
+        profile={profile}
+        search={search}
+        onSearch={handleSearch}
+        onLogin={() => setLoginOpen(true)}
+        onHome={goHome}
+      />
       {!supabase && <p className="container demo-banner">{t('demoMode')}</p>}
 
-      <nav className="container chips-row" aria-label="Categories">
-        <CategoryFilter value={filter} onChange={setFilter} />
-      </nav>
+      {isAdminRoute ? (
+        <AdminPage profile={profile} deals={deals} onDealsChanged={reloadDeals} onBack={goHome} />
+      ) : isProfileRoute ? (
+        <ProfilePage
+          userId={userId}
+          profile={profile}
+          onProfileChanged={reloadProfile}
+          onReviewsChanged={refreshStats}
+          onOpenDeal={setOpenDealId}
+          onLogin={() => setLoginOpen(true)}
+          onBack={goHome}
+        />
+      ) : publicUserId ? (
+        <PublicProfilePage userId={publicUserId} onOpenDeal={setOpenDealId} onBack={goHome} />
+      ) : (
+        <>
+        <nav className="container chips-row" aria-label="Categories">
+          <CategoryFilter value={filter} onChange={setFilter} />
+        </nav>
 
-      <main className="container">
-        {loadState === 'loading' && <p className="empty">{t('loading')}</p>}
-        {loadState === 'error' && <p className="empty">{t('loadError')}</p>}
-        {loadState === 'ready' && (
-          <>
-            {showHome && (
-              <section className="home-top">
-                <Hero />
-                {newDeals.length > 0 && <NewThisWeek deals={newDeals} onOpen={setOpenDealId} />}
-              </section>
-            )}
-            <p className="result-count" aria-live="polite">
-              {visibleDeals.length} {t('results')}
-            </p>
-            <div className="deal-grid">
-              {visibleDeals.length > 0 ? (
-                visibleDeals.map((deal) => (
-                  <DealCard
-                    key={deal.id}
-                    deal={deal}
-                    stats={stats[deal.id]}
-                    isFavorite={favorites.has(deal.id)}
-                    onOpen={() => setOpenDealId(deal.id)}
-                    onToggleFavorite={() => toggleFavorite(deal.id)}
-                    onShare={() => shareDeal(deal)}
-                  />
-                ))
-              ) : (
-                <p className="empty">{filter === 'favorites' ? t('noFavorites') : t('noResults')}</p>
+        <main className="container">
+          {loadState === 'loading' && <p className="empty">{t('loading')}</p>}
+          {loadState === 'error' && <p className="empty">{t('loadError')}</p>}
+          {loadState === 'ready' && (
+            <>
+              {showHome && (
+                <section className="home-top">
+                  <Hero />
+                  {showTrending ? (
+                    <NewThisWeek title={t('trendingThisWeek')} deals={trendingDeals} stats={dealStats} onOpen={setOpenDealId} />
+                  ) : (
+                    newDeals.length > 0 && <NewThisWeek title={t('newThisWeek')} deals={newDeals} onOpen={setOpenDealId} />
+                  )}
+                </section>
               )}
-            </div>
-          </>
-        )}
-        {view === 'home' && <SubmitForm userId={userId} onLogin={() => setLoginOpen(true)} />}
-      </main>
+              <p className="result-count" aria-live="polite">
+                {visibleDeals.length} {t('results')}
+              </p>
+              <div className="deal-grid">
+                {visibleDeals.length > 0 ? (
+                  visibleDeals.map((deal) => (
+                    <DealCard
+                      key={deal.id}
+                      deal={deal}
+                      stats={stats[deal.id]}
+                      isFavorite={favorites.has(deal.id)}
+                      onOpen={() => setOpenDealId(deal.id)}
+                      onToggleFavorite={() => toggleFavorite(deal.id)}
+                      onShare={() => shareDeal(deal)}
+                    />
+                  ))
+                ) : (
+                  <p className="empty">{filter === 'favorites' ? t('noFavorites') : t('noResults')}</p>
+                )}
+              </div>
+            </>
+          )}
+          {view === 'home' && <SubmitForm userId={userId} onLogin={() => setLoginOpen(true)} />}
+        </main>
+
+        </>
+      )}
 
       <footer className="container site-footer">
         <button type="button" className="btn-ghost owner-cta" onClick={() => setOwnerOpen(true)}>

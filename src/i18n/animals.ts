@@ -50,3 +50,4 @@ export function animalLabel(a: AnimalName, lang: Lang): string {
 export function animalEmoji(a: AnimalName): string {
   return ANIMALS[a.animal]?.emoji ?? '🐾';
 }
+

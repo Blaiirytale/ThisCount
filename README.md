@@ -6,7 +6,7 @@ Student deals near Tamkang University, in Chinese and English.
 ## Features
 - Search, category chips and "New this week"
 - 中文 / English switch
-- Email login with magic links (any email, no password)
+- Email + password login (no login emails needed)
 - "Still works / Gone" votes, favorites ♥, comments
 - Submit-a-deal form; admins review and publish
 

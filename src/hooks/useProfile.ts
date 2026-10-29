@@ -12,7 +12,7 @@ export function useProfile(userId: string | null): { profile: Profile | null; re
       setProfile(null);
       return;
     }
-    loadProfile()
+    loadProfile(userId)
       .then(setProfile)
       .catch((err) => console.error('[ThisCount] profile', err));
   }, [userId]);

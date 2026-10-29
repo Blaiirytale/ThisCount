@@ -112,13 +112,19 @@ drop policy if exists "read own profile" on public.profiles;
 create policy "read own profile" on public.profiles
   for select to authenticated using (user_id = auth.uid() or public.is_admin());
 
--- Keep these lists in sync with src/i18n/animals.ts
+-- Allowed name words. Keep these lists in sync with src/i18n/animals.ts
+create or replace function public.allowed_adjs() returns text[] language sql immutable as $$
+  select array['sleepy','hungry','happy','brave','lucky','curious','sunny','tiny','fluffy','speedy','thrifty','chill'];
+$$;
+create or replace function public.allowed_animals() returns text[] language sql immutable as $$
+  select array['otter','leopardcat','bear','magpie','raccoon','shiba','cat','penguin','seal','sloth','fox',
+               'hedgehog','rabbit','panda','whale','octopus','turtle','frog','duck','cow'];
+$$;
 create or replace function public.random_adj() returns text language sql volatile as $$
-  select (array['sleepy','hungry','happy','brave','lucky','curious','sunny','tiny','fluffy','speedy','thrifty','chill'])[1 + floor(random() * 12)::int];
+  select a[1 + floor(random() * array_length(a, 1))::int] from (select public.allowed_adjs() as a) x;
 $$;
 create or replace function public.random_animal() returns text language sql volatile as $$
-  select (array['otter','leopardcat','bear','magpie','raccoon','shiba','cat','penguin','seal','sloth','fox',
-                'hedgehog','rabbit','panda','whale','octopus','turtle','frog','duck','cow'])[1 + floor(random() * 20)::int];
+  select a[1 + floor(random() * array_length(a, 1))::int] from (select public.allowed_animals() as a) x;
 $$;
 create or replace function public.random_tag() returns text language sql volatile as $$
   select lpad(floor(random() * 100)::int::text, 2, '0');
@@ -179,6 +185,15 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
+-- Today's date in Taiwan (used to hide expired deals automatically)
+create or replace function public.today_tw()
+returns date
+language sql
+stable
+as $$
+  select (now() at time zone 'Asia/Taipei')::date;
+$$;
+
 -- ===================================================================
 -- Deals (admins edit these; owner_id links a deal to its approved shop owner)
 -- ===================================================================
@@ -204,8 +219,10 @@ alter table public.deals add column if not exists owner_id uuid references auth.
 alter table public.deals enable row level security;
 
 drop policy if exists "everyone reads active deals" on public.deals;
+-- Visitors see deals that are shown AND not expired. Admins see everything.
 create policy "everyone reads active deals" on public.deals
-  for select to anon, authenticated using (is_active or public.is_admin());
+  for select to anon, authenticated
+  using ((is_active and (valid_until is null or valid_until >= public.today_tw())) or public.is_admin());
 
 drop policy if exists "admins manage deals" on public.deals;
 create policy "admins manage deals" on public.deals
@@ -626,3 +643,201 @@ on conflict (id) do nothing;
 -- 2. Change the email below, remove the "--", and run this line:
 -- insert into public.admins (user_id) select id from auth.users where email = 'you@example.com';
 -- ===================================================================
+
+-- ===================================================================
+-- Review translations (saved so each review is translated only once)
+-- Written only by the "translate-review" Edge Function (server side).
+-- ===================================================================
+create table if not exists public.review_translations (
+  review_id       bigint not null references public.reviews (id) on delete cascade,
+  target_lang     text not null check (target_lang in ('zh', 'en')),
+  translated_text text not null,
+  source_lang     text not null default '',
+  created_at      timestamptz not null default now(),
+  primary key (review_id, target_lang)
+);
+alter table public.review_translations enable row level security;
+
+drop policy if exists "everyone reads translations" on public.review_translations;
+create policy "everyone reads translations" on public.review_translations
+  for select to anon, authenticated using (true);
+-- No insert policy: visitors can't write fake translations.
+
+-- ===================================================================
+-- Admin page extras
+-- ===================================================================
+-- Admins can clear reports when they restore a review
+drop policy if exists "admins delete reports" on public.review_reports;
+create policy "admins delete reports" on public.review_reports
+  for delete to authenticated using (public.is_admin());
+
+-- Admins can remove photos of reviews they delete
+drop policy if exists "admins delete review photos" on storage.objects;
+create policy "admins delete review photos" on storage.objects
+  for delete to authenticated using (bucket_id = 'review-photos' and public.is_admin());
+
+-- ===================================================================
+-- Profiles: pick your own animal name, and public profiles
+-- ===================================================================
+-- Change my name. Only words from the lists are allowed, so no bad names.
+-- Also updates the name on my old reviews.
+create or replace function public.set_my_animal(p_adj text, p_animal text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'not_logged_in';
+  end if;
+  if not (p_adj = any (public.allowed_adjs())) or not (p_animal = any (public.allowed_animals())) then
+    raise exception 'invalid_name';
+  end if;
+  perform public.ensure_profile(auth.uid());
+  update public.profiles set adj = p_adj, animal = p_animal where user_id = auth.uid();
+  update public.reviews set author_adj = p_adj, author_animal = p_animal where user_id = auth.uid();
+end;
+$$;
+-- Only used by reroll_my_animal() below; the website can't pick names directly
+revoke all on function public.set_my_animal(text, text) from public, anon, authenticated;
+
+-- Get a new random name (the website's 🎲 button). Allowed ONCE per person.
+-- Admins can unlock it: Table Editor → profiles → set name_rerolled to false.
+alter table public.profiles add column if not exists name_rerolled boolean not null default false;
+
+create or replace function public.reroll_my_animal()
+returns table (adj text, animal text, tag text)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_adj text := public.random_adj();
+  v_animal text := public.random_animal();
+begin
+  if exists (select 1 from public.profiles p where p.user_id = auth.uid() and p.name_rerolled) then
+    raise exception 'reroll_used';
+  end if;
+  perform public.set_my_animal(v_adj, v_animal);
+  update public.profiles set name_rerolled = true where user_id = auth.uid();
+  return query select p.adj, p.animal, p.tag from public.profiles p where p.user_id = auth.uid();
+end;
+$$;
+revoke all on function public.reroll_my_animal() from public, anon;
+grant execute on function public.reroll_my_animal() to authenticated;
+
+-- Which accounts are admins (so the website can show an "Admin" badge)
+create or replace function public.get_admin_ids()
+returns setof uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select user_id from public.admins;
+$$;
+grant execute on function public.get_admin_ids() to anon, authenticated;
+
+-- What anyone can see about a user (no email)
+drop function if exists public.get_public_profile(uuid);
+create or replace function public.get_public_profile(p_user uuid)
+returns table (adj text, animal text, tag text, role text, shop_name text, joined_at timestamptz, review_count int, is_admin boolean)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select p.adj, p.animal, p.tag, p.role, p.shop_name, p.created_at,
+         (select count(*) from public.reviews r where r.user_id = p.user_id and r.status = 'visible')::int,
+         exists (select 1 from public.admins a where a.user_id = p.user_id)
+  from public.profiles p
+  where p.user_id = p_user;
+$$;
+grant execute on function public.get_public_profile(uuid) to anon, authenticated;
+
+-- ===================================================================
+-- Trending: count views, map clicks and shares per deal
+-- Each browser counts once per deal, per kind, per day (no spam inflation).
+-- ===================================================================
+create table if not exists public.deal_events (
+  id         bigint generated always as identity primary key,
+  deal_id    text not null references public.deals (id) on delete cascade,
+  kind       text not null check (kind in ('view', 'map', 'share')),
+  visitor_id uuid not null,
+  day        date not null default ((now() at time zone 'Asia/Taipei')::date),
+  created_at timestamptz not null default now(),
+  unique (deal_id, kind, visitor_id, day)
+);
+alter table public.deal_events enable row level security; -- no policies: only the functions below touch it
+create index if not exists deal_events_recent_idx on public.deal_events (created_at, deal_id);
+
+create or replace function public.track_deal(p_deal_id text, p_kind text, p_visitor uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_kind not in ('view', 'map', 'share') or p_visitor is null then
+    return;
+  end if;
+  insert into public.deal_events (deal_id, kind, visitor_id)
+  select d.id, p_kind, p_visitor from public.deals d
+  where d.id = p_deal_id and d.is_active and (d.valid_until is null or d.valid_until >= public.today_tw())
+  on conflict do nothing;
+end;
+$$;
+grant execute on function public.track_deal(text, text, uuid) to anon, authenticated;
+
+-- Numbers per deal for the last p_days days.
+-- score = views + 2×map clicks + 2×shares + 3×saves + 5×reviews
+-- p_all = true includes hidden deals, but only for admins.
+drop function if exists public.get_deal_stats(int, boolean);
+create or replace function public.get_deal_stats(p_days int default 7, p_all boolean default false)
+returns table (deal_id text, views int, map_clicks int, shares int, saves int, reviews int, score int)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  with since as (
+    select now() - make_interval(days => least(greatest(coalesce(p_days, 7), 1), 90)) as t
+  ),
+  e as (
+    select ev.deal_id,
+           count(*) filter (where ev.kind = 'view')  as views,
+           count(*) filter (where ev.kind = 'map')   as map_clicks,
+           count(*) filter (where ev.kind = 'share') as shares
+    from public.deal_events ev, since
+    where ev.created_at >= since.t
+    group by ev.deal_id
+  ),
+  f as (
+    select fa.deal_id, count(*) as saves
+    from public.favorites fa, since
+    where fa.created_at >= since.t
+    group by fa.deal_id
+  ),
+  r as (
+    select rv.deal_id, count(*) as reviews
+    from public.reviews rv, since
+    where rv.status = 'visible' and rv.created_at >= since.t
+    group by rv.deal_id
+  )
+  select d.id,
+         coalesce(e.views, 0)::int,
+         coalesce(e.map_clicks, 0)::int,
+         coalesce(e.shares, 0)::int,
+         coalesce(f.saves, 0)::int,
+         coalesce(r.reviews, 0)::int,
+         (coalesce(e.views, 0) + 2 * coalesce(e.map_clicks, 0) + 2 * coalesce(e.shares, 0)
+          + 3 * coalesce(f.saves, 0) + 5 * coalesce(r.reviews, 0))::int
+  from public.deals d
+  left join e on e.deal_id = d.id
+  left join f on f.deal_id = d.id
+  left join r on r.deal_id = d.id
+  where (d.is_active and (d.valid_until is null or d.valid_until >= public.today_tw()))
+     or (p_all and public.is_admin());
+$$;
+grant execute on function public.get_deal_stats(int, boolean) to anon, authenticated;
