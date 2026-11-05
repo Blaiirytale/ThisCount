@@ -1184,3 +1184,116 @@ a.review-name:hover {
   margin-top: 2px;
   font-weight: 700;
 }
+
+/* ===================== Shop owner page ===================== */
+.shop-intro {
+  gap: 12px;
+}
+.shop-lede {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.4rem;
+  line-height: 1.35;
+}
+.shop-benefits {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.facts-wrap {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+.facts-wrap dd {
+  overflow-wrap: anywhere;
+}
+.owner-line {
+  margin: 0;
+}
+a.owner-cta {
+  display: inline-block;
+  color: var(--ink);
+}
+
+/* ===================== Store photos ===================== */
+.note-cover {
+  display: block;
+  width: calc(100% + 36px);
+  max-width: none;
+  height: 140px;
+  margin: -14px -18px 6px;
+  border-radius: 26px 26px 0 0;
+  object-fit: cover;
+}
+.gallery {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.gallery img {
+  display: block;
+  width: 160px;
+  height: 120px;
+  border-radius: 14px;
+  object-fit: cover;
+}
+.photo-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.thumb-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.thumb {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  margin: 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.thumb-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.6);
+  color: #ffffff;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+.thumb-add {
+  display: grid;
+  place-items: center;
+  padding: 6px;
+  border: 1.5px dashed var(--muted);
+  font-size: 0.75rem;
+  text-align: center;
+  cursor: pointer;
+}
+.approval-note {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.avatar {
+  font-weight: 800;
+  color: var(--ink);
+}

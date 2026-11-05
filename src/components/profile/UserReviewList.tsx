@@ -31,8 +31,8 @@ export function UserReviewList({ reviews, emptyText, onOpenDeal, onDelete }: Pro
             <span className="muted small">{shortDate(r.createdAt)}</span>
             {r.isHidden && <span className="tag tag-bad">{t('hiddenStatus')}</span>}
           </div>
-          {r.worked === true && <span className="tag tag-good">✓ {t('worked')}</span>}
-          {r.worked === false && <span className="tag tag-bad">✕ {t('didnt')}</span>}
+          {r.worked === true && <span className="tag tag-good">{t('workedChip')}</span>}
+          {r.worked === false && <span className="tag tag-bad">{t('didntChip')}</span>}
           {r.body && <p className="review-body">{r.body}</p>}
           {r.photoUrl && (
             <a href={r.photoUrl} target="_blank" rel="noopener" className="review-photo">
@@ -41,7 +41,7 @@ export function UserReviewList({ reviews, emptyText, onOpenDeal, onDelete }: Pro
           )}
           <div className="row-gap">
             <span className="muted small">
-              👍 {r.helpfulCount} {t('helpful')}
+              {r.helpfulCount} {t('helpful')}
             </span>
             {onDelete &&
               (confirmId === r.id ? (

@@ -38,7 +38,7 @@ export interface AnimalName {
 
 export interface Profile {
   animal: AnimalName;
-  nameRerolled: boolean; // true = already used the one 🎲 re-roll
+  nameRerolled: boolean; // true = already used the one name re-roll
   role: 'student' | 'owner';
   shopName: string | null;
   isAdmin: boolean;

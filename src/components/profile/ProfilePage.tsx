@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useLanguage } from '../../i18n/LanguageContext';
-import { animalEmoji, animalLabel } from '../../i18n/animals';
+import { animalInitial, animalLabel } from '../../i18n/animals';
 import { changePassword, listUserReviews, rerollMyAnimal } from '../../api/profile';
 import { deleteReview } from '../../api/reviews';
 import { signOut } from '../../hooks/useAuth';
@@ -118,7 +118,7 @@ export function ProfilePage({ userId, profile, onProfileChanged, onReviewsChange
         <section className="admin-item profile-card">
           <div className="profile-hero">
             <span className="avatar avatar-big" aria-hidden="true">
-              {animalEmoji(preview)}
+              {animalInitial(preview, lang)}
             </span>
             <div>
               <p className="profile-name">{animalLabel(preview, lang)}</p>
@@ -135,7 +135,7 @@ export function ProfilePage({ userId, profile, onProfileChanged, onReviewsChange
             <p className="muted small">{t('nameHint')}</p>
             <div className="row-gap">
               {profile?.nameRerolled ? (
-                <span className="muted small">🔒 {t('rerollUsed')}</span>
+                <span className="muted small">{t('rerollUsed')}</span>
               ) : (
                 <button type="button" className="btn-primary" onClick={rollName} disabled={savingName}>
                   {savingName ? t('sending') : t('newRandomName')}

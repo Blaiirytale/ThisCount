@@ -9,7 +9,7 @@ import type { Deal } from '../types';
 interface Props {
   title: string;
   deals: Deal[];
-  stats?: Record<string, DealStats>; // shows "🔥 12 views" when given
+  stats?: Record<string, DealStats>; // shows "12 views" when given
   onOpen: (dealId: string) => void;
 }
 
@@ -32,7 +32,7 @@ export function NewThisWeek({ title, deals, stats, onOpen }: Props) {
             </span>
             {stats?.[deal.id] && (
               <span className="nw-line nw-hot">
-                🔥 {stats[deal.id].views} {t('statViews')}
+                {stats[deal.id].views} {t('statViews')}
               </span>
             )}
           </button>

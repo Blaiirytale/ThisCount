@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { useLanguage } from '../i18n/LanguageContext';
-import { animalEmoji, animalLabel } from '../i18n/animals';
+import { animalInitial, animalLabel } from '../i18n/animals';
 import { isBlockedLanguage } from '../api/reviews';
 import { looksLike, QuotaError, translateReview, translationAvailable } from '../api/translate';
 import { shortDate } from '../utils/dates';
@@ -81,7 +81,7 @@ export function ReviewItem({ review, isHelpful, canReply, onHelpful, onReport, o
     <li className="review">
       <div className="review-head">
         <span className="avatar" aria-hidden="true">
-          {animalEmoji(review.author)}
+          {animalInitial(review.author, lang)}
         </span>
         <div className="review-who">
           <a className="review-name" href={`#user-${review.authorId}`}>
@@ -94,8 +94,8 @@ export function ReviewItem({ review, isHelpful, canReply, onHelpful, onReport, o
       </div>
 
       {review.isHidden && <p className="hidden-note">{t('hiddenNotice')}</p>}
-      {review.worked === true && <span className="tag tag-good">✓ {t('worked')}</span>}
-      {review.worked === false && <span className="tag tag-bad">✕ {t('didnt')}</span>}
+      {review.worked === true && <span className="tag tag-good">{t('workedChip')}</span>}
+      {review.worked === false && <span className="tag tag-bad">{t('didntChip')}</span>}
       {review.body && (
         <p className="review-body" lang={showTranslated && translated ? lang : undefined}>
           {showTranslated && translated ? translated : review.body}
@@ -124,7 +124,7 @@ export function ReviewItem({ review, isHelpful, canReply, onHelpful, onReport, o
           onClick={onHelpful}
           disabled={review.isMine}
         >
-          👍 {t('helpful')} · {review.helpfulCount}
+          {t('helpful')} · {review.helpfulCount}
         </button>
         {canReply && !replyOpen && (
           <button type="button" className="mini-btn" onClick={() => setReplyOpen(true)}>

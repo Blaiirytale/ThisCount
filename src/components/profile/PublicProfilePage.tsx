@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useLanguage } from '../../i18n/LanguageContext';
-import { animalEmoji, animalLabel } from '../../i18n/animals';
+import { animalInitial, animalLabel } from '../../i18n/animals';
 import { getPublicProfile, listUserReviews } from '../../api/profile';
 import { shortDate } from '../../utils/dates';
 import { UserReviewList } from './UserReviewList';
@@ -56,7 +56,7 @@ export function PublicProfilePage({ userId, onOpenDeal, onBack }: Props) {
           <section className="admin-item profile-card">
             <div className="profile-hero">
               <span className="avatar avatar-big" aria-hidden="true">
-                {animalEmoji(profile.animal)}
+                {animalInitial(profile.animal, lang)}
               </span>
               <div>
                 <h1 className="profile-name">{animalLabel(profile.animal, lang)}</h1>

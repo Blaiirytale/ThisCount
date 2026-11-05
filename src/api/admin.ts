@@ -126,6 +126,9 @@ export interface OwnerApplication {
   id: number;
   shopName: string;
   contact: string;
+  area: string;
+  category: Category | null;
+  offer: string;
   message: string;
   dealId: string | null;
   dealName: Bilingual | null;
@@ -137,6 +140,9 @@ interface ApplicationRow {
   id: number;
   shop_name: string;
   contact: string;
+  area: string;
+  category: Category | null;
+  offer: string;
   message: string;
   deal_id: string | null;
   status: ReviewStatus;
@@ -147,7 +153,7 @@ interface ApplicationRow {
 export async function listOwnerApplications(status: ReviewStatus): Promise<OwnerApplication[]> {
   const { data, error } = await requireSupabase()
     .from('owner_applications')
-    .select('id, shop_name, contact, message, deal_id, status, created_at, deals (name_zh, name_en)')
+    .select('id, shop_name, contact, area, category, offer, message, deal_id, status, created_at, deals (name_zh, name_en)')
     .eq('status', status)
     .order('created_at', { ascending: false });
   if (error) throw error;
@@ -155,6 +161,9 @@ export async function listOwnerApplications(status: ReviewStatus): Promise<Owner
     id: r.id,
     shopName: r.shop_name,
     contact: r.contact,
+    area: r.area ?? '',
+    category: r.category,
+    offer: r.offer ?? '',
     message: r.message,
     dealId: r.deal_id,
     dealName: r.deals ? { zh: r.deals.name_zh, en: r.deals.name_en } : null,
@@ -169,6 +178,50 @@ export async function decideOwnerApplication(id: number, status: ReviewStatus, d
     .from('owner_applications')
     .update({ status, deal_id: dealId })
     .eq('id', id);
+  if (error) throw error;
+}
+
+// ---------- Current shop owners ----------
+
+export interface ShopOwner {
+  userId: string;
+  email: string;
+  shopName: string | null;
+  animal: { adj: string; animal: string; tag: string };
+  contact: string | null;
+  deals: { id: string; name: Bilingual }[];
+  ownerSince: string | null;
+}
+
+interface OwnerRow {
+  owner_id: string;
+  email: string;
+  shop_name: string | null;
+  adj: string;
+  animal: string;
+  tag: string;
+  contact: string | null;
+  deals: { id: string; zh: string; en: string }[];
+  owner_since: string | null;
+}
+
+export async function listShopOwners(): Promise<ShopOwner[]> {
+  const { data, error } = await requireSupabase().rpc('admin_list_owners');
+  if (error) throw error;
+  return (data as OwnerRow[]).map((r) => ({
+    userId: r.owner_id,
+    email: r.email,
+    shopName: r.shop_name,
+    animal: { adj: r.adj, animal: r.animal, tag: r.tag },
+    contact: r.contact,
+    deals: (r.deals ?? []).map((d) => ({ id: d.id, name: { zh: d.zh, en: d.en } })),
+    ownerSince: r.owner_since,
+  }));
+}
+
+// Back to a normal student account; their deals get unlinked
+export async function removeShopOwner(userId: string): Promise<void> {
+  const { error } = await requireSupabase().rpc('admin_remove_owner', { p_user: userId });
   if (error) throw error;
 }
 

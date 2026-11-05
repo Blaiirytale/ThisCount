@@ -35,7 +35,7 @@ export async function loadProfile(userId: string): Promise<Profile | null> {
   };
 }
 
-// 🎲 Get a new random name. The database picks it (no rude names) and allows it only once.
+// Get a new random name. The database picks it (no rude names) and allows it only once.
 export async function rerollMyAnimal(): Promise<AnimalName> {
   const { data, error } = await requireSupabase().rpc('reroll_my_animal');
   if (error) throw error;

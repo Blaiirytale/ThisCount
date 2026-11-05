@@ -2,7 +2,7 @@
 
 import type { User } from '@supabase/supabase-js';
 import { useLanguage } from '../i18n/LanguageContext';
-import { animalEmoji, animalLabel } from '../i18n/animals';
+import { animalLabel } from '../i18n/animals';
 import { LanguageToggle } from './LanguageToggle';
 import { SearchBar } from './SearchBar';
 import { UserIcon } from './Icons';
@@ -35,10 +35,15 @@ export function Header({ user, profile, search, onSearch, onLogin, onHome }: Pro
             {t('adminLink')}
           </a>
         )}
+        {profile?.role === 'owner' && (
+          <a className="pill admin-link" href="#shop">
+            {t('myShop')}
+          </a>
+        )}
         {user ? (
           // Logged in: your animal name, opens your profile
           <a className="pill profile-pill" href="#profile" title={user.email}>
-            <span aria-hidden="true">{profile ? animalEmoji(profile.animal) : '🐾'}</span>
+            <UserIcon />
             <span>{profile ? animalLabel(profile.animal, lang) : t('profile')}</span>
           </a>
         ) : (

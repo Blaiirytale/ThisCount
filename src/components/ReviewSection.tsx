@@ -164,8 +164,8 @@ export function ReviewSection({ deal, stats, userId, profile, onLogin, onChanged
             <span className="muted">
               ({stats.count} {t('reviewCount')})
             </span>
-            <span className="tag tag-good">✓ {stats.worked} {t('worked')}</span>
-            <span className="tag tag-bad">✕ {stats.didnt} {t('didnt')}</span>
+            <span className="tag tag-good">{stats.worked} {t('worked')}</span>
+            <span className="tag tag-bad">{stats.didnt} {t('didnt')}</span>
           </div>
         ) : (
           <p className="muted">{t('noReviewsYet')}</p>
@@ -189,10 +189,10 @@ export function ReviewSection({ deal, stats, userId, profile, onLogin, onChanged
           <StarInput value={rating} onChange={setRating} label={t('yourRating')} />
           <div className="chips">
             <button type="button" className="chip" aria-pressed={worked === true} onClick={() => toggleWorked(true)}>
-              ✓ {t('worked')}
+              {t('workedChip')}
             </button>
             <button type="button" className="chip" aria-pressed={worked === false} onClick={() => toggleWorked(false)}>
-              ✕ {t('didnt')}
+              {t('didntChip')}
             </button>
           </div>
           <textarea
@@ -215,7 +215,7 @@ export function ReviewSection({ deal, stats, userId, profile, onLogin, onChanged
               </>
             ) : (
               <label className="btn-ghost" htmlFor="review-photo">
-                📷 {t('addPhoto')}
+                {t('addPhoto')}
                 <input id="review-photo" type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={pickPhoto} />
               </label>
             )}

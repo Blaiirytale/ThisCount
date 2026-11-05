@@ -1,4 +1,4 @@
-// Favorite deals (♥), saved per user
+// Favorite deals (heart button), saved per user
 
 import { requireSupabase } from '../lib/supabase';
 

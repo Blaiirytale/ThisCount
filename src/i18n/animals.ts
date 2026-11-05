@@ -47,7 +47,9 @@ export function animalLabel(a: AnimalName, lang: Lang): string {
   return lang === 'zh' ? `${adj}${animal} #${a.tag}` : `${adj} ${animal} #${a.tag}`;
 }
 
-export function animalEmoji(a: AnimalName): string {
-  return ANIMALS[a.animal]?.emoji ?? '🐾';
+// Letter for the round avatar: "Otter" → "O", "水獺" → "水"
+export function animalInitial(a: AnimalName, lang: Lang): string {
+  const name = ANIMALS[a.animal]?.name[lang] ?? a.animal;
+  return Array.from(name)[0]?.toUpperCase() ?? '?';
 }
 

@@ -10,6 +10,7 @@ import { loadReviewStats } from './api/reviews';
 import { addFavorite, loadFavorites, removeFavorite } from './api/favorites';
 import { isNew } from './utils/dates';
 import { loadDealStats, trackDeal, type DealStats } from './api/stats';
+import { loadShopPhotos, type ShopPhoto } from './api/shopPhotos';
 import { Header } from './components/Header';
 import { CategoryFilter } from './components/CategoryFilter';
 import { Hero } from './components/Hero';
@@ -18,11 +19,11 @@ import { DealCard } from './components/DealCard';
 import { DealDetail } from './components/DealDetail';
 import { SubmitForm } from './components/SubmitForm';
 import { LoginDialog } from './components/LoginDialog';
-import { OwnerApplyDialog } from './components/OwnerApplyDialog';
 import { Toast } from './components/Toast';
 import { AdminPage } from './components/admin/AdminPage';
 import { ProfilePage } from './components/profile/ProfilePage';
 import { PublicProfilePage } from './components/profile/PublicProfilePage';
+import { OwnerPage } from './components/owner/OwnerPage';
 import type { Deal, Filter, ReviewStats } from './types';
 
 // Each view has its own background (see .view-* in components.css)
@@ -40,13 +41,13 @@ export default function App() {
   const [stats, setStats] = useState<Record<string, ReviewStats>>({});
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [dealStats, setDealStats] = useState<Record<string, DealStats>>({});
+  const [shopPhotos, setShopPhotos] = useState<Record<string, ShopPhoto[]>>({});
 
   // UI
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [openDealId, setOpenDealId] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
-  const [ownerOpen, setOwnerOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const clearNotice = useCallback(() => setNotice(''), []);
 
@@ -59,8 +60,9 @@ export default function App() {
   }, []);
   const isAdminRoute = route === '#admin';
   const isProfileRoute = route === '#profile';
+  const isShopRoute = route === '#shop';
   const publicUserId = route.startsWith('#user-') ? route.slice('#user-'.length) : null;
-  const pageView = isAdminRoute || isProfileRoute || publicUserId ? 'admin' : null; // plain cream background
+  const pageView = isAdminRoute || isProfileRoute || isShopRoute || publicUserId ? 'admin' : null; // plain cream background
 
   // Following a link (e.g. a reviewer's name) closes the deal pop-up
   useEffect(() => {
@@ -86,6 +88,22 @@ export default function App() {
         setLoadState('error');
       });
   }, []);
+
+  const reloadPhotos = useCallback(() => {
+    loadShopPhotos()
+      .then(setShopPhotos)
+      .catch((err) => console.error('[ThisCount] photos', err));
+  }, []);
+
+  // After admin or owner changes: deals + photos
+  const reloadAll = useCallback(() => {
+    reloadDeals();
+    reloadPhotos();
+  }, [reloadDeals, reloadPhotos]);
+
+  useEffect(() => {
+    reloadPhotos();
+  }, [reloadPhotos]);
 
   useEffect(() => {
     reloadDeals();
@@ -201,7 +219,7 @@ export default function App() {
       {!supabase && <p className="container demo-banner">{t('demoMode')}</p>}
 
       {isAdminRoute ? (
-        <AdminPage profile={profile} deals={deals} onDealsChanged={reloadDeals} onBack={goHome} />
+        <AdminPage userId={userId} profile={profile} deals={deals} onDealsChanged={reloadAll} onBack={goHome} />
       ) : isProfileRoute ? (
         <ProfilePage
           userId={userId}
@@ -210,6 +228,19 @@ export default function App() {
           onReviewsChanged={refreshStats}
           onOpenDeal={setOpenDealId}
           onLogin={() => setLoginOpen(true)}
+          onBack={goHome}
+        />
+      ) : isShopRoute ? (
+        <OwnerPage
+          userId={userId}
+          profile={profile}
+          deals={deals}
+          reviewStats={stats}
+          photos={shopPhotos}
+          onPhotosChanged={reloadPhotos}
+          onLogin={() => setLoginOpen(true)}
+          onOpenDeal={setOpenDealId}
+          onProfileChanged={reloadProfile}
           onBack={goHome}
         />
       ) : publicUserId ? (
@@ -245,6 +276,7 @@ export default function App() {
                       key={deal.id}
                       deal={deal}
                       stats={stats[deal.id]}
+                      cover={shopPhotos[deal.id]?.[0]}
                       isFavorite={favorites.has(deal.id)}
                       onOpen={() => setOpenDealId(deal.id)}
                       onToggleFavorite={() => toggleFavorite(deal.id)}
@@ -264,15 +296,18 @@ export default function App() {
       )}
 
       <footer className="container site-footer">
-        <button type="button" className="btn-ghost owner-cta" onClick={() => setOwnerOpen(true)}>
-          🏪 {t('ownerCta')}
-        </button>
+        {!isShopRoute && (
+          <a className="btn-ghost owner-cta" href="#shop">
+            {t('ownerCta')}
+          </a>
+        )}
         <p>{t('footer')}</p>
       </footer>
 
       <DealDetail
         deal={openDeal}
         stats={openDeal ? stats[openDeal.id] : undefined}
+        photos={openDeal ? shopPhotos[openDeal.id] ?? [] : []}
         isFavorite={openDeal ? favorites.has(openDeal.id) : false}
         userId={userId}
         profile={profile}
@@ -282,17 +317,6 @@ export default function App() {
         onReviewsChanged={refreshStats}
       />
       <LoginDialog open={loginOpen} onClose={() => setLoginOpen(false)} />
-      <OwnerApplyDialog
-        open={ownerOpen}
-        onClose={() => setOwnerOpen(false)}
-        userId={userId}
-        profile={profile}
-        deals={deals}
-        onLogin={() => {
-          setOwnerOpen(false);
-          setLoginOpen(true);
-        }}
-      />
       <Toast message={notice} onDone={clearNotice} />
     </div>
   );

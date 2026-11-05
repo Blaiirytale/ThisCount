@@ -6,11 +6,13 @@ import { trackDeal } from '../api/stats';
 import { Modal, ModalHeader } from './Modal';
 import { FavoriteButton } from './FavoriteButton';
 import { ReviewSection } from './ReviewSection';
+import type { ShopPhoto } from '../api/shopPhotos';
 import type { Deal, Profile, ReviewStats } from '../types';
 
 interface Props {
   deal: Deal | null; // null = closed
   stats?: ReviewStats;
+  photos: ShopPhoto[];
   isFavorite: boolean;
   userId: string | null;
   profile: Profile | null;
@@ -21,7 +23,7 @@ interface Props {
 }
 
 export function DealDetail(props: Props) {
-  const { deal, stats, isFavorite, userId, profile, onClose, onToggleFavorite, onLogin, onReviewsChanged } = props;
+  const { deal, stats, photos, isFavorite, userId, profile, onClose, onToggleFavorite, onLogin, onReviewsChanged } = props;
   const { t, pick, lang } = useLanguage();
 
   return (
@@ -31,6 +33,16 @@ export function DealDetail(props: Props) {
           <ModalHeader id="deal-title" title={pick(deal.name)} onClose={onClose} closeLabel={t('close')} />
           <p className="detail-offer">{pick(deal.offer)}</p>
           <p className="card-conditions">{pick(deal.conditions)}</p>
+
+          {photos.length > 0 && (
+            <div className="gallery" aria-label={t('storePhotos')}>
+              {photos.map((p) => (
+                <a key={p.id} href={p.url} target="_blank" rel="noopener">
+                  <img src={p.url} alt={t('storePhotoAlt')} loading="lazy" />
+                </a>
+              ))}
+            </div>
+          )}
 
           <dl className="facts">
             <div>

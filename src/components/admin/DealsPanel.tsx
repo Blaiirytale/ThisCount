@@ -3,8 +3,19 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLanguage, type TextKey } from '../../i18n/LanguageContext';
-import { createDeal, listAllDeals, setDealActive, updateDeal, type AdminDeal, type DealInput } from '../../api/admin';
+import {
+  createDeal,
+  listAllDeals,
+  listShopOwners,
+  setDealActive,
+  updateDeal,
+  type AdminDeal,
+  type DealInput,
+  type ShopOwner,
+} from '../../api/admin';
 import { loadDealStats, type DealStats } from '../../api/stats';
+import { loadShopPhotos, type ShopPhoto } from '../../api/shopPhotos';
+import { ShopPhotoManager } from '../ShopPhotoManager';
 import { formatRange, isNew } from '../../utils/dates';
 import { DealForm, emptyDeal, today } from './DealForm';
 import { CATEGORIES, type Category } from '../../types';
@@ -64,13 +75,16 @@ function toInput(d: AdminDeal): DealInput {
 }
 
 interface Props {
+  userId: string | null; // the admin, needed to upload store photos
   onDealsChanged: () => void;
 }
 
-export function DealsPanel({ onDealsChanged }: Props) {
+export function DealsPanel({ userId, onDealsChanged }: Props) {
   const { t, pick, lang } = useLanguage();
   const [deals, setDeals] = useState<AdminDeal[]>([]);
   const [stats, setStats] = useState<Record<string, DealStats>>({});
+  const [owners, setOwners] = useState<Record<string, ShopOwner>>({}); // by user id
+  const [photos, setPhotos] = useState<Record<string, ShopPhoto[]>>({});
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [group, setGroup] = useState<Group>('all');
   const [category, setCategory] = useState<Category | ''>('');
@@ -80,9 +94,16 @@ export function DealsPanel({ onDealsChanged }: Props) {
 
   const load = useCallback(async () => {
     try {
-      const [list, numbers] = await Promise.all([listAllDeals(), loadDealStats(7, true)]);
+      const [list, numbers, ownerList, photoMap] = await Promise.all([
+        listAllDeals(),
+        loadDealStats(7, true),
+        listShopOwners(),
+        loadShopPhotos(),
+      ]);
+      setPhotos(photoMap);
       setDeals(list);
       setStats(numbers);
+      setOwners(Object.fromEntries(ownerList.map((o) => [o.userId, o])));
       setState('ready');
     } catch (err) {
       console.error('[ThisCount] all deals', err);
@@ -219,15 +240,32 @@ export function DealsPanel({ onDealsChanged }: Props) {
               <p className="muted small">
                 {deal.area} · {formatRange(deal.addedAt, deal.validUntil, lang)} · {t('lastChecked')} {deal.lastChecked}
               </p>
+              {deal.ownerId && (
+                <p className="small owner-line">
+                  {t('ownerBadge')}: <strong>{owners[deal.ownerId]?.shopName ?? '—'}</strong>
+                  {owners[deal.ownerId] && <span className="muted"> · {owners[deal.ownerId].email}</span>}
+                  {owners[deal.ownerId]?.contact && <span className="muted"> · {owners[deal.ownerId].contact}</span>}
+                </p>
+              )}
               <p className="stat-line" title={t('last7days')}>
-                <span>👁 {s.views} {t('statViews')}</span>
-                <span>🗺 {s.mapClicks} {t('statMap')}</span>
-                <span>↗ {s.shares} {t('statShares')}</span>
-                <span>♥ {s.saves} {t('statSaves')}</span>
-                <span>★ {s.reviews} {t('statReviews')}</span>
+                <span>{s.views} {t('statViews')}</span>
+                <span>{s.mapClicks} {t('statMap')}</span>
+                <span>{s.shares} {t('statShares')}</span>
+                <span>{s.saves} {t('statSaves')}</span>
+                <span>{s.reviews} {t('statReviews')}</span>
                 <span className="muted">({t('last7days')})</span>
               </p>
 
+              <ShopPhotoManager
+                dealId={deal.id}
+                photos={photos[deal.id] ?? []}
+                userId={userId}
+                canAdd={!!userId}
+                onChanged={async () => {
+                  await load();
+                  onDealsChanged();
+                }}
+              />
               {editing === deal.id ? (
                 <DealForm
                   formId={`edit-${deal.id}`}
@@ -243,7 +281,7 @@ export function DealsPanel({ onDealsChanged }: Props) {
               ) : (
                 <div className="row-gap">
                   <button type="button" className="btn-ghost" onClick={() => setEditing(deal.id)}>
-                    ✎ {t('edit')}
+                    {t('edit')}
                   </button>
                   <button type="button" className="link-btn" onClick={() => toggleActive(deal)}>
                     {deal.isActive ? t('hideFromSite') : t('showOnSite')}

@@ -7,23 +7,26 @@ import { SubmissionsPanel } from './SubmissionsPanel';
 import { OwnersPanel } from './OwnersPanel';
 import { ReportsPanel } from './ReportsPanel';
 import { DealsPanel } from './DealsPanel';
+import { OwnerRequestsPanel } from './OwnerRequestsPanel';
 import type { Deal, Profile } from '../../types';
 
-type Tab = 'deals' | 'submissions' | 'owners' | 'reports';
+type Tab = 'deals' | 'requests' | 'submissions' | 'owners' | 'reports';
 
 interface Props {
+  userId: string | null;
   profile: Profile | null;
   deals: Deal[];
   onDealsChanged: () => void;
   onBack: () => void;
 }
 
-export function AdminPage({ profile, deals, onDealsChanged, onBack }: Props) {
+export function AdminPage({ userId, profile, deals, onDealsChanged, onBack }: Props) {
   const { t } = useLanguage();
   const [tab, setTab] = useState<Tab>('deals');
-  const [counts, setCounts] = useState<Record<Tab, number | null>>({ deals: null, submissions: null, owners: null, reports: null });
+  const [counts, setCounts] = useState<Record<Tab, number | null>>({ deals: null, requests: null, submissions: null, owners: null, reports: null });
 
   // Panels report their numbers for the tab badges
+  const countRequests = useCallback((n: number) => setCounts((c) => ({ ...c, requests: n })), []);
   const countSubmissions = useCallback((n: number) => setCounts((c) => ({ ...c, submissions: n })), []);
   const countOwners = useCallback((n: number) => setCounts((c) => ({ ...c, owners: n })), []);
   const countReports = useCallback((n: number) => setCounts((c) => ({ ...c, reports: n })), []);
@@ -41,6 +44,7 @@ export function AdminPage({ profile, deals, onDealsChanged, onBack }: Props) {
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'deals', label: t('tabDeals') },
+    { id: 'requests', label: t('tabRequests') },
     { id: 'submissions', label: t('tabSubmissions') },
     { id: 'owners', label: t('tabOwners') },
     { id: 'reports', label: t('tabReports') },
@@ -72,7 +76,8 @@ export function AdminPage({ profile, deals, onDealsChanged, onBack }: Props) {
         ))}
       </div>
 
-      {tab === 'deals' && <DealsPanel onDealsChanged={onDealsChanged} />}
+      {tab === 'deals' && <DealsPanel userId={userId} onDealsChanged={onDealsChanged} />}
+      {tab === 'requests' && <OwnerRequestsPanel onDealsChanged={onDealsChanged} onCountChange={countRequests} />}
       {tab === 'submissions' && <SubmissionsPanel onDealsChanged={onDealsChanged} onCountChange={countSubmissions} />}
       {tab === 'owners' && <OwnersPanel deals={deals} onDealsChanged={onDealsChanged} onCountChange={countOwners} />}
       {tab === 'reports' && <ReportsPanel onCountChange={countReports} />}

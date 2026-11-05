@@ -7,18 +7,20 @@ import { isNew } from '../utils/dates';
 import { FavoriteButton } from './FavoriteButton';
 import { Stars } from './Stars';
 import { ChevronLeftIcon, MoreIcon, ShareIcon } from './Icons';
+import type { ShopPhoto } from '../api/shopPhotos';
 import type { Deal, ReviewStats } from '../types';
 
 interface Props {
   deal: Deal;
   stats?: ReviewStats;
+  cover?: ShopPhoto; // first store photo, if the owner added one
   isFavorite: boolean;
   onOpen: () => void;
   onToggleFavorite: () => void;
   onShare: () => void;
 }
 
-export function DealCard({ deal, stats, isFavorite, onOpen, onToggleFavorite, onShare }: Props) {
+export function DealCard({ deal, stats, cover, isFavorite, onOpen, onToggleFavorite, onShare }: Props) {
   const { t, pick, lang } = useLanguage();
 
   // Buttons inside the card shouldn't also trigger the card click
@@ -29,6 +31,7 @@ export function DealCard({ deal, stats, isFavorite, onOpen, onToggleFavorite, on
 
   return (
     <article className="note-card" onClick={onOpen}>
+      {cover && <img className="note-cover" src={cover.url} alt={t('storePhotoAlt')} loading="lazy" />}
       <div className="note-bar">
         <span className="note-back">
           <ChevronLeftIcon />
