@@ -257,5 +257,9 @@
   "requestRejected": "已拒絕，店家可以看到你的原因。",
   "storePhotos": "店家照片",
   "storePhotoAlt": "店家照片",
-  "tooManyPhotos": "每個優惠最多 6 張照片，請先刪除一張。"
+  "tooManyPhotos": "每個優惠最多 6 張照片，請先刪除一張。",
+  "addPicture": "上傳頭貼",
+  "changePicture": "更換頭貼",
+  "removePicture": "移除頭貼",
+  "pictureHint": "頭貼會顯示在你的評論旁邊。名字仍是隨機動物，評論保持匿名。請不要使用別人的照片。"
 }

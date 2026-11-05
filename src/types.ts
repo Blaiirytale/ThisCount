@@ -39,6 +39,7 @@ export interface AnimalName {
 export interface Profile {
   animal: AnimalName;
   nameRerolled: boolean; // true = already used the one name re-roll
+  avatarUrl: string | null;
   role: 'student' | 'owner';
   shopName: string | null;
   isAdmin: boolean;
@@ -63,6 +64,7 @@ export interface Review {
   helpfulCount: number;
   createdAt: string;
   authorId: string;      // links to their public profile
+  authorAvatarUrl: string | null;
   isMine: boolean;
   isHidden: boolean;     // hidden after reports (only you and admins see it)
   replies: ReviewReply[];
@@ -88,6 +90,7 @@ export interface PublicProfile {
   joinedAt: string;
   reviewCount: number;
   isAdmin: boolean;
+  avatarUrl: string | null;
 }
 
 // A review shown on a profile page (with the deal it belongs to)

@@ -43,7 +43,7 @@ export function Header({ user, profile, search, onSearch, onLogin, onHome }: Pro
         {user ? (
           // Logged in: your animal name, opens your profile
           <a className="pill profile-pill" href="#profile" title={user.email}>
-            <UserIcon />
+            {profile?.avatarUrl ? <img className="pill-avatar" src={profile.avatarUrl} alt="" /> : <UserIcon />}
             <span>{profile ? animalLabel(profile.animal, lang) : t('profile')}</span>
           </a>
         ) : (

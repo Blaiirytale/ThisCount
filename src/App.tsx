@@ -244,7 +244,12 @@ export default function App() {
           onBack={goHome}
         />
       ) : publicUserId ? (
-        <PublicProfilePage userId={publicUserId} onOpenDeal={setOpenDealId} onBack={goHome} />
+        <PublicProfilePage
+          userId={publicUserId}
+          viewerIsAdmin={!!profile?.isAdmin}
+          onOpenDeal={setOpenDealId}
+          onBack={goHome}
+        />
       ) : (
         <>
         <nav className="container chips-row" aria-label="Categories">

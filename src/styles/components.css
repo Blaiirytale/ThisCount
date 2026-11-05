@@ -777,6 +777,11 @@ textarea.field {
   overflow-wrap: anywhere;
 }
 .role-badge {
+  display: inline-block;
+  flex: none;
+  align-self: center;
+  width: fit-content;
+  line-height: 1.6;
   padding: 0 8px;
   border-radius: 999px;
   color: #ffffff;
@@ -1296,4 +1301,31 @@ a.owner-cta {
 .avatar {
   font-weight: 800;
   color: var(--ink);
+}
+
+/* ===================== Profile pictures ===================== */
+.avatar-img {
+  padding: 0;
+  object-fit: cover;
+  background: var(--sky-card);
+}
+.avatar-edit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.pill-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* Reviewer name + Admin badge side by side */
+.review-name-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
 }

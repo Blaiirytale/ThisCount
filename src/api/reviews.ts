@@ -2,6 +2,7 @@
 
 import { requireSupabase, supabase } from '../lib/supabase';
 import { resizeImage } from '../utils/image';
+import { loadAvatars } from './avatars';
 import type { ReportReason, Review, ReviewReply, ReviewSort, ReviewStats } from '../types';
 
 const BUCKET = 'review-photos';
@@ -103,6 +104,7 @@ function fromRow(r: ReviewRow, userId: string | null): Review {
     helpfulCount: r.helpful_count,
     createdAt: r.created_at,
     authorId: r.user_id,
+    authorAvatarUrl: null, // filled in by listReviews
     isMine: r.user_id === userId,
     isHidden: r.status === 'hidden',
     replies: (r.review_replies ?? []).map(fromReplyRow).sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
@@ -118,7 +120,10 @@ export async function listReviews(dealId: string, userId: string | null, sort: R
       : query.order('created_at', { ascending: false });
   const { data, error } = await query.limit(50);
   if (error) throw error;
-  return (data as unknown as ReviewRow[]).map((r) => fromRow(r, userId));
+  const reviews = (data as unknown as ReviewRow[]).map((r) => fromRow(r, userId));
+  // Profile pictures of the reviewers (one extra request for all of them)
+  const avatars = await loadAvatars(reviews.map((r) => r.authorId)).catch(() => ({}) as Record<string, string>);
+  return reviews.map((r) => ({ ...r, authorAvatarUrl: avatars[r.authorId] ?? null }));
 }
 
 // Which of these reviews I already marked helpful

@@ -61,8 +61,8 @@ create policy "owner or admin deletes store photo files" on storage.objects
     )
   );
 
--- Deleting a file also needs permission to see it. Both photo buckets are public anyway.
+-- Deleting a file also needs permission to see it. All photo buckets are public anyway.
 drop policy if exists "anyone sees photo files" on storage.objects;
 create policy "anyone sees photo files" on storage.objects
   for select to anon, authenticated
-  using (bucket_id in ('shop-photos', 'review-photos'));
+  using (bucket_id in ('shop-photos', 'review-photos', 'avatars'));

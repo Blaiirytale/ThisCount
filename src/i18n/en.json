@@ -257,5 +257,9 @@
   "requestRejected": "Rejected. The owner can see your reason.",
   "storePhotos": "Store photos",
   "storePhotoAlt": "Photo of the shop",
-  "tooManyPhotos": "Up to 6 photos per deal. Remove one to add another."
+  "tooManyPhotos": "Up to 6 photos per deal. Remove one to add another.",
+  "addPicture": "Add picture",
+  "changePicture": "Change picture",
+  "removePicture": "Remove picture",
+  "pictureHint": "Your picture shows next to your reviews. Your name stays a random animal, so reviews stay anonymous. Please don't use a photo of someone else."
 }

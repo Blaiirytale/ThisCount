@@ -1,12 +1,15 @@
-// My profile (#profile): name picker, my reviews, password, log out
+// My profile (#profile): picture, random name, my reviews, password, log out
 
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { animalInitial, animalLabel } from '../../i18n/animals';
 import { changePassword, listUserReviews, rerollMyAnimal } from '../../api/profile';
 import { deleteReview } from '../../api/reviews';
 import { signOut } from '../../hooks/useAuth';
 import { UserReviewList } from './UserReviewList';
+import { Avatar } from '../Avatar';
+import { removeMyAvatar, uploadMyAvatar } from '../../api/avatars';
+import { checkPhoto } from '../../utils/image';
 import type { Profile, UserReview } from '../../types';
 
 const MIN_PASSWORD = 6;
@@ -23,6 +26,10 @@ interface Props {
 
 export function ProfilePage({ userId, profile, onProfileChanged, onReviewsChanged, onOpenDeal, onLogin, onBack }: Props) {
   const { t, lang } = useLanguage();
+
+  // Profile picture
+  const [picBusy, setPicBusy] = useState(false);
+  const [picMsg, setPicMsg] = useState('');
 
   // Random name
   const [nameMsg, setNameMsg] = useState<{ text: string; kind: 'ok' | 'error' } | null>(null);
@@ -59,6 +66,39 @@ export function ProfilePage({ userId, profile, onProfileChanged, onReviewsChange
         </div>
       </main>
     );
+  }
+
+  async function pickPicture(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // lets you pick the same file again
+    if (!file || !userId) return;
+    if (checkPhoto(file) === 'type') return setPicMsg(t('photoType'));
+    if (checkPhoto(file) === 'size') return setPicMsg(t('photoTooBig').replace('{mb}', '10'));
+    setPicBusy(true);
+    setPicMsg('');
+    try {
+      await uploadMyAvatar(file, userId);
+      onProfileChanged();
+      onReviewsChanged();
+    } catch (err) {
+      console.error('[ThisCount] uploadMyAvatar', err);
+      setPicMsg(t('actionError'));
+    } finally {
+      setPicBusy(false);
+    }
+  }
+
+  async function dropPicture() {
+    setPicBusy(true);
+    try {
+      await removeMyAvatar();
+      onProfileChanged();
+    } catch (err) {
+      console.error('[ThisCount] removeMyAvatar', err);
+      setPicMsg(t('actionError'));
+    } finally {
+      setPicBusy(false);
+    }
   }
 
   async function rollName() {
@@ -117,9 +157,25 @@ export function ProfilePage({ userId, profile, onProfileChanged, onReviewsChange
       {preview && (
         <section className="admin-item profile-card">
           <div className="profile-hero">
-            <span className="avatar avatar-big" aria-hidden="true">
-              {animalInitial(preview, lang)}
-            </span>
+            <div className="avatar-edit">
+              <Avatar url={profile?.avatarUrl} initial={animalInitial(preview, lang)} size="big" />
+              <label className="link-btn" htmlFor="avatar-file">
+                {picBusy ? t('sending') : profile?.avatarUrl ? t('changePicture') : t('addPicture')}
+                <input
+                  id="avatar-file"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  hidden
+                  disabled={picBusy}
+                  onChange={pickPicture}
+                />
+              </label>
+              {profile?.avatarUrl && !picBusy && (
+                <button type="button" className="link-btn" onClick={dropPicture}>
+                  {t('removePicture')}
+                </button>
+              )}
+            </div>
             <div>
               <p className="profile-name">{animalLabel(preview, lang)}</p>
               {profile?.role === 'owner' && (
@@ -132,6 +188,8 @@ export function ProfilePage({ userId, profile, onProfileChanged, onReviewsChange
           </div>
 
           <div className="name-form">
+            {picMsg && <p className="form-message" data-kind="error">{picMsg}</p>}
+            <p className="muted small">{t('pictureHint')}</p>
             <p className="muted small">{t('nameHint')}</p>
             <div className="row-gap">
               {profile?.nameRerolled ? (

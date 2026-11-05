@@ -7,6 +7,7 @@ import { isBlockedLanguage } from '../api/reviews';
 import { looksLike, QuotaError, translateReview, translationAvailable } from '../api/translate';
 import { shortDate } from '../utils/dates';
 import { Stars } from './Stars';
+import { Avatar } from './Avatar';
 import { useAdminIds } from '../hooks/useAdminIds';
 import type { ReportReason, Review } from '../types';
 
@@ -80,14 +81,15 @@ export function ReviewItem({ review, isHelpful, canReply, onHelpful, onReport, o
   return (
     <li className="review">
       <div className="review-head">
-        <span className="avatar" aria-hidden="true">
-          {animalInitial(review.author, lang)}
-        </span>
+        <Avatar url={review.authorAvatarUrl} initial={animalInitial(review.author, lang)} />
         <div className="review-who">
-          <a className="review-name" href={`#user-${review.authorId}`}>
-            {animalLabel(review.author, lang)}
-          </a>
-          {adminIds.has(review.authorId) && <span className="role-badge role-admin">{t('adminBadge')}</span>}
+          {/* Name and badge on one line */}
+          <span className="review-name-row">
+            <a className="review-name" href={`#user-${review.authorId}`}>
+              {animalLabel(review.author, lang)}
+            </a>
+            {adminIds.has(review.authorId) && <span className="role-badge role-admin">{t('adminBadge')}</span>}
+          </span>
           <span className="review-date">{shortDate(review.createdAt)}</span>
         </div>
         <Stars value={review.rating} />

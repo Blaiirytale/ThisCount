@@ -2,6 +2,7 @@
 
 import { requireSupabase, supabase } from '../lib/supabase';
 import { reviewPhotoUrl } from './reviews';
+import { avatarUrl } from './avatars';
 import type { AnimalName, Profile, PublicProfile, UserReview } from '../types';
 
 export async function loadProfile(userId: string): Promise<Profile | null> {
@@ -12,7 +13,7 @@ export async function loadProfile(userId: string): Promise<Profile | null> {
 
   const [profile, admin] = await Promise.all([
     // Only my row: admins can read every profile, so we must filter
-    sb.from('profiles').select('adj, animal, tag, role, shop_name, name_rerolled').eq('user_id', userId).maybeSingle(),
+    sb.from('profiles').select('adj, animal, tag, role, shop_name, name_rerolled, avatar_path').eq('user_id', userId).maybeSingle(),
     sb.rpc('is_admin'),
   ]);
   if (profile.error) throw profile.error;
@@ -25,10 +26,12 @@ export async function loadProfile(userId: string): Promise<Profile | null> {
     role: 'student' | 'owner';
     shop_name: string | null;
     name_rerolled: boolean;
+    avatar_path: string | null;
   };
   return {
     animal: { adj: p.adj, animal: p.animal, tag: p.tag },
     nameRerolled: p.name_rerolled,
+    avatarUrl: avatarUrl(p.avatar_path),
     role: p.role,
     shopName: p.shop_name,
     isAdmin: admin.data === true,
@@ -77,6 +80,7 @@ export async function getPublicProfile(userId: string): Promise<PublicProfile | 
     joinedAt: row.joined_at as string,
     reviewCount: row.review_count as number,
     isAdmin: row.is_admin === true,
+    avatarUrl: avatarUrl(row.avatar_path as string | null),
   };
 }
 

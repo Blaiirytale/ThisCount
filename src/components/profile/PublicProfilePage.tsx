@@ -6,15 +6,18 @@ import { animalInitial, animalLabel } from '../../i18n/animals';
 import { getPublicProfile, listUserReviews } from '../../api/profile';
 import { shortDate } from '../../utils/dates';
 import { UserReviewList } from './UserReviewList';
+import { Avatar } from '../Avatar';
+import { adminRemoveAvatar } from '../../api/avatars';
 import type { PublicProfile, UserReview } from '../../types';
 
 interface Props {
   userId: string;
+  viewerIsAdmin: boolean; // admins can remove a bad picture
   onOpenDeal: (dealId: string) => void;
   onBack: () => void;
 }
 
-export function PublicProfilePage({ userId, onOpenDeal, onBack }: Props) {
+export function PublicProfilePage({ userId, viewerIsAdmin, onOpenDeal, onBack }: Props) {
   const { t, lang } = useLanguage();
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [reviews, setReviews] = useState<UserReview[]>([]);
@@ -55,9 +58,7 @@ export function PublicProfilePage({ userId, onOpenDeal, onBack }: Props) {
         <>
           <section className="admin-item profile-card">
             <div className="profile-hero">
-              <span className="avatar avatar-big" aria-hidden="true">
-                {animalInitial(profile.animal, lang)}
-              </span>
+              <Avatar url={profile.avatarUrl} initial={animalInitial(profile.animal, lang)} size="big" />
               <div>
                 <h1 className="profile-name">{animalLabel(profile.animal, lang)}</h1>
                 {profile.isAdmin && <span className="role-badge role-admin">{t('adminBadge')}</span>}
@@ -69,6 +70,19 @@ export function PublicProfilePage({ userId, onOpenDeal, onBack }: Props) {
                 <p className="muted small">
                   {t('joined')} {shortDate(profile.joinedAt)} · {profile.reviewCount} {t('reviewCount')}
                 </p>
+                {viewerIsAdmin && profile.avatarUrl && (
+                  <button
+                    type="button"
+                    className="link-btn"
+                    onClick={() =>
+                      adminRemoveAvatar(userId)
+                        .then(() => setProfile({ ...profile, avatarUrl: null }))
+                        .catch((err) => console.error('[ThisCount] adminRemoveAvatar', err))
+                    }
+                  >
+                    {t('removePicture')}
+                  </button>
+                )}
               </div>
             </div>
           </section>
